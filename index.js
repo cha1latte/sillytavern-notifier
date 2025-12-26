@@ -170,7 +170,7 @@ function connectSSE() {
                 const data = JSON.parse(event.data);
                 clientId = data.clientId;
                 console.log(`[${extensionName}] Assigned client ID: ${clientId}`);
-                updateStatusDisplay('Connected', 'success');
+                updateStatusDisplay('Connected!', 'success');
             } catch (error) {
                 console.error(`[${extensionName}] Error parsing welcome:`, error);
             }
