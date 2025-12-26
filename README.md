@@ -16,10 +16,11 @@ This extension has two components that need to be installed:
 
 ### 1. Server Plugin (required)
 
-Copy the `server-plugin` folder to your SillyTavern plugins directory:
+Clone the server plugin into your SillyTavern plugins directory:
 
 ```bash
-cp -r server-plugin /path/to/SillyTavern/plugins/message-ding-relay
+cd /path/to/SillyTavern/plugins
+git clone https://github.com/cha1latte/sillytavern-notifier-server
 ```
 
 Make sure server plugins are enabled in your `config.yaml`:
@@ -36,17 +37,11 @@ Then restart SillyTavern. You should see in the logs:
 
 ### 2. UI Extension (required)
 
-The UI extension can be installed via git clone into your third-party extensions folder:
+Clone this repo into your third-party extensions folder:
 
 ```bash
 cd /path/to/SillyTavern/public/scripts/extensions/third-party
 git clone https://github.com/cha1latte/sillytavern-notifier
-```
-
-Or copy the files manually:
-```bash
-mkdir -p /path/to/SillyTavern/public/scripts/extensions/third-party/sillytavern-notifier
-cp index.js manifest.json example.html /path/to/SillyTavern/public/scripts/extensions/third-party/sillytavern-notifier/
 ```
 
 Then refresh your browser.
@@ -80,10 +75,10 @@ Then refresh your browser.
 
 ## Extending
 
-To add support for additional events (like user messages), edit:
+To add support for additional events (like user messages), edit both repos:
 
-1. `server-plugin/index.js` - Add event type to `EVENT_TYPES`
-2. `index.js` (UI extension) - Add event listener and handling
+1. [sillytavern-notifier-server](https://github.com/cha1latte/sillytavern-notifier-server) - Add event type to `EVENT_TYPES`
+2. This repo (`index.js`) - Add event listener and handling
 
 User message notifications are already stubbed out in the code - just uncomment to enable.
 
