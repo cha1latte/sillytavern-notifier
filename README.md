@@ -1,4 +1,4 @@
-# SillyTavern Notifier
+# SillyTavern Cross-Client Message Notifier
 
 Notifies you when there's a new bot reply on another client. Perfect for shared accounts where multiple people are participating in the same chat from different computers.
 
