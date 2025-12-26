@@ -3,7 +3,7 @@
 
 import { getContext } from "../../../extensions.js";
 
-const extensionName = "st-message-ding";
+const extensionName = "sillytavern-notifier";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
 // WebSocket configuration
