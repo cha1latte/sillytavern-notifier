@@ -42,20 +42,20 @@ Then refresh your browser.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     SillyTavern Server                          │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Server Plugin (WebSocket relay on port 5050)             │ │
-│  │  - Tracks connected clients                                │ │
-│  │  - Broadcasts events to OTHER clients only                 │ │
-│  └───────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Server Plugin (WebSocket relay on port 5050)             │  │
+│  │  - Tracks connected clients                               │  │
+│  │  - Broadcasts events to OTHER clients only                │  │
+│  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               ▲
                               │ WebSocket
                 ┌─────────────┴─────────────┐
                 │                           │
      ┌──────────▼──────────┐     ┌──────────▼──────────┐
-     │   Client A           │     │   Client B           │
-     │   (triggers message) │     │   (receives notif)   │
-     └─────────────────────┘     └──────────────────────┘
+     │  Client A           │     │   Client B          │
+     │  (triggers message) │     │   (receives notif)  │
+     └─────────────────────┘     └─────────────────────┘
 ```
 
 1. Client A sends a message, bot responds
