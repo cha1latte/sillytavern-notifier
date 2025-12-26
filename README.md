@@ -16,11 +16,11 @@ This extension has two components that need to be installed:
 
 ### 1. [Server Plugin](https://github.com/cha1latte/sillytavern-notifier-server) (required)
 
-Copy the `server-plugin` folder to your SillyTavern plugins directory:
+Clone the `sillytavern-notifier-server` repo into your SillyTavern plugins directory:
 
 ```bash
-cp -r server-plugin /path/to/SillyTavern/plugins/message-ding-relay
-cd /path/to/SillyTavern/plugins/message-ding-relay
+git clone https://github.com/cha1latte/sillytavern-notifier-server
+cd sillytavern-notifier-server
 npm install
 ```
 
