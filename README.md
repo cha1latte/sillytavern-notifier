@@ -14,7 +14,7 @@ Notifies you when there's a new bot reply on another client. Perfect for shared 
 
 This extension has two components that need to be installed:
 
-### 1. Server Plugin (required)
+### 1. [Server Plugin](https://github.com/cha1latte/sillytavern-notifier-server) (required)
 
 Clone the server plugin into your SillyTavern plugins directory:
 
@@ -51,20 +51,20 @@ Then refresh your browser.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     SillyTavern Server                          │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Server Plugin (SSE relay via /api/plugins/...)           │ │
-│  │  - Tracks connected clients                                │ │
-│  │  - Broadcasts events to OTHER clients only                 │ │
-│  └───────────────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Server Plugin (SSE relay via /api/plugins/...)           │  │
+│  │  - Tracks connected clients                               │  │
+│  │  - Broadcasts events to OTHER clients only                │  │
+│  └───────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
                               ▲
                               │ HTTPS (same port as SillyTavern)
                 ┌─────────────┴─────────────┐
                 │                           │
      ┌──────────▼──────────┐     ┌──────────▼──────────┐
-     │   Client A           │     │   Client B           │
-     │   (triggers message) │     │   (receives notif)   │
-     └─────────────────────┘     └──────────────────────┘
+     │  Client A           │     │   Client B          │
+     │  (triggers message) │     │   (receives notif)  │
+     └─────────────────────┘     └─────────────────────┘
 ```
 
 1. Client A sends a message, bot responds
