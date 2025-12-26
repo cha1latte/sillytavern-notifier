@@ -4,8 +4,7 @@
   "requires": [],
   "optional": [],
   "js": "index.js",
-  "css": "style.css",
   "author": "cha1latte",
   "version": "1.0.0",
-  "homePage": "https://github.com/username/sillytavern-message-notifier"
+  "description": "Cross-client notifications for shared SillyTavern accounts"
 }
