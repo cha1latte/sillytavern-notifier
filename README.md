@@ -14,7 +14,7 @@ Notifies you when there's a new bot reply on another client. Perfect for shared 
 
 This extension has two components that need to be installed:
 
-### 1. Server Plugin (required)
+### 1. [Server Plugin](https://github.com/cha1latte/sillytavern-notifier-server) (required)
 
 Copy the `server-plugin` folder to your SillyTavern plugins directory:
 
