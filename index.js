@@ -6,9 +6,10 @@ import { getContext } from "../../../extensions.js";
 const extensionName = "sillytavern-notifier";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
-// WebSocket configuration
-const DEFAULT_WS_PORT = 5050;
-let ws = null;
+// SSE configuration
+const SSE_ENDPOINT = '/api/plugins/message-ding-relay/events';
+const NOTIFY_ENDPOINT = '/api/plugins/message-ding-relay/notify';
+let eventSource = null;
 let clientId = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -37,7 +38,6 @@ function initNotificationSound() {
  */
 function playNotificationSound() {
     if (notificationAudio) {
-        // Reset and play
         notificationAudio.currentTime = 0;
         notificationAudio.play().catch((error) => {
             console.warn(`[${extensionName}] Could not play sound:`, error);
@@ -75,14 +75,12 @@ function showDesktopNotification(title, body) {
     if (Notification.permission === "granted") {
         const notification = new Notification(title, {
             body: body,
-            icon: '/img/ai4.png', // SillyTavern default icon
-            tag: 'message-ding', // Prevents duplicate notifications
+            icon: '/img/ai4.png',
+            tag: 'message-ding',
         });
 
-        // Auto-close after 5 seconds
         setTimeout(() => notification.close(), 5000);
 
-        // Focus window when clicked
         notification.onclick = () => {
             window.focus();
             notification.close();
@@ -92,22 +90,20 @@ function showDesktopNotification(title, body) {
 
 /**
  * Handle incoming notification from another client
- * @param {object} message - The notification message
+ * @param {object} data - The notification data
  */
-function handleIncomingNotification(message) {
-    console.log(`[${extensionName}] Received notification:`, message.event);
+function handleIncomingNotification(data) {
+    console.log(`[${extensionName}] Received notification:`, data.event);
 
-    // Play sound
     playNotificationSound();
 
-    // Show desktop notification
     let title = 'SillyTavern';
     let body = 'New message received';
 
-    if (message.event === EVENT_TYPES.CHARACTER_MESSAGE) {
+    if (data.event === EVENT_TYPES.CHARACTER_MESSAGE) {
         title = 'New Bot Message';
         body = 'A character has responded in the chat';
-    } else if (message.event === EVENT_TYPES.USER_MESSAGE) {
+    } else if (data.event === EVENT_TYPES.USER_MESSAGE) {
         title = 'New User Message';
         body = 'Someone sent a message in the chat';
     }
@@ -116,101 +112,99 @@ function handleIncomingNotification(message) {
 }
 
 /**
- * Send a notification event to other clients
+ * Send a notification event to other clients via POST
  * @param {string} eventType - The event type to broadcast
  * @param {object} data - Optional data to include
  */
-function notifyOtherClients(eventType, data = {}) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-            type: 'notify',
-            event: eventType,
-            data: data,
-        }));
-        console.log(`[${extensionName}] Sent ${eventType} notification`);
-    }
-}
-
-/**
- * Get the WebSocket port from the server plugin
- */
-async function getWebSocketPort() {
-    try {
-        const response = await fetch('/api/plugins/message-ding-relay/port');
-        if (response.ok) {
-            const data = await response.json();
-            return data.port;
-        }
-    } catch (error) {
-        console.warn(`[${extensionName}] Could not fetch WS port from server, using default`);
-    }
-    return DEFAULT_WS_PORT;
-}
-
-/**
- * Connect to the WebSocket server
- */
-async function connectWebSocket() {
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+async function notifyOtherClients(eventType, data = {}) {
+    if (!clientId) {
+        console.warn(`[${extensionName}] Not connected, cannot send notification`);
         return;
     }
 
-    const port = await getWebSocketPort();
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.hostname;
-    const wsUrl = `${protocol}//${host}:${port}`;
+    try {
+        const response = await fetch(NOTIFY_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                clientId: clientId,
+                event: eventType,
+                data: data,
+            }),
+        });
 
-    console.log(`[${extensionName}] Connecting to WebSocket: ${wsUrl}`);
+        if (response.ok) {
+            const result = await response.json();
+            console.log(`[${extensionName}] Sent ${eventType} notification to ${result.recipients} client(s)`);
+        } else {
+            console.error(`[${extensionName}] Failed to send notification:`, response.status);
+        }
+    } catch (error) {
+        console.error(`[${extensionName}] Error sending notification:`, error);
+    }
+}
+
+/**
+ * Connect to the SSE endpoint
+ */
+function connectSSE() {
+    if (eventSource) {
+        eventSource.close();
+    }
+
+    console.log(`[${extensionName}] Connecting to SSE: ${SSE_ENDPOINT}`);
 
     try {
-        ws = new WebSocket(wsUrl);
+        eventSource = new EventSource(SSE_ENDPOINT);
 
-        ws.onopen = () => {
-            console.log(`[${extensionName}] WebSocket connected`);
+        eventSource.onopen = () => {
+            console.log(`[${extensionName}] SSE connected`);
             reconnectAttempts = 0;
-            updateStatusDisplay('Connected', 'success');
         };
 
-        ws.onmessage = (event) => {
+        // Handle welcome event
+        eventSource.addEventListener('welcome', (event) => {
             try {
-                const message = JSON.parse(event.data);
-
-                switch (message.type) {
-                    case 'welcome':
-                        clientId = message.clientId;
-                        console.log(`[${extensionName}] Assigned client ID: ${clientId}`);
-                        break;
-
-                    case 'notification':
-                        handleIncomingNotification(message);
-                        break;
-
-                    case 'pong':
-                        // Heartbeat response, ignore
-                        break;
-
-                    default:
-                        console.log(`[${extensionName}] Unknown message type:`, message.type);
-                }
+                const data = JSON.parse(event.data);
+                clientId = data.clientId;
+                console.log(`[${extensionName}] Assigned client ID: ${clientId}`);
+                updateStatusDisplay('Connected', 'success');
             } catch (error) {
-                console.error(`[${extensionName}] Error parsing WebSocket message:`, error);
+                console.error(`[${extensionName}] Error parsing welcome:`, error);
+            }
+        });
+
+        // Handle notification events
+        eventSource.addEventListener('notification', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleIncomingNotification(data);
+            } catch (error) {
+                console.error(`[${extensionName}] Error parsing notification:`, error);
+            }
+        });
+
+        // Handle heartbeat (just for keep-alive, no action needed)
+        eventSource.addEventListener('heartbeat', () => {
+            // Connection is alive
+        });
+
+        eventSource.onerror = (error) => {
+            console.error(`[${extensionName}] SSE error:`, error);
+            clientId = null;
+
+            if (eventSource.readyState === EventSource.CLOSED) {
+                updateStatusDisplay('Disconnected - reconnecting...', 'warning');
+                scheduleReconnect();
+            } else {
+                updateStatusDisplay('Connection error', 'error');
             }
         };
 
-        ws.onclose = (event) => {
-            console.log(`[${extensionName}] WebSocket disconnected:`, event.reason || 'No reason');
-            clientId = null;
-            updateStatusDisplay('Disconnected - reconnecting...', 'warning');
-            scheduleReconnect();
-        };
-
-        ws.onerror = (error) => {
-            console.error(`[${extensionName}] WebSocket error:`, error);
-            updateStatusDisplay('Connection error', 'error');
-        };
-
     } catch (error) {
-        console.error(`[${extensionName}] Failed to create WebSocket:`, error);
+        console.error(`[${extensionName}] Failed to create EventSource:`, error);
         scheduleReconnect();
     }
 }
@@ -233,11 +227,12 @@ function updateStatusDisplay(message, type) {
 }
 
 /**
- * Schedule a WebSocket reconnection attempt
+ * Schedule a reconnection attempt
  */
 function scheduleReconnect() {
     if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
         console.error(`[${extensionName}] Max reconnection attempts reached`);
+        updateStatusDisplay('Connection failed', 'error');
         return;
     }
 
@@ -245,7 +240,7 @@ function scheduleReconnect() {
     const delay = RECONNECT_DELAY_MS * reconnectAttempts;
     console.log(`[${extensionName}] Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
 
-    setTimeout(connectWebSocket, delay);
+    setTimeout(connectSSE, delay);
 }
 
 /**
@@ -253,21 +248,21 @@ function scheduleReconnect() {
  */
 function setupEventListeners() {
     const context = getContext();
-    const { eventSource, event_types } = context;
+    const { eventSource: stEventSource, event_types } = context;
 
-    if (!eventSource || !event_types) {
+    if (!stEventSource || !event_types) {
         console.error(`[${extensionName}] Could not access SillyTavern event system`);
         return;
     }
 
     // Listen for bot message completion
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, () => {
+    stEventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, () => {
         console.log(`[${extensionName}] CHARACTER_MESSAGE_RENDERED event detected`);
         notifyOtherClients(EVENT_TYPES.CHARACTER_MESSAGE);
     });
 
     // Ready for future: user messages
-    // eventSource.on(event_types.USER_MESSAGE_RENDERED, () => {
+    // stEventSource.on(event_types.USER_MESSAGE_RENDERED, () => {
     //     notifyOtherClients(EVENT_TYPES.USER_MESSAGE);
     // });
 
@@ -291,8 +286,8 @@ jQuery(async () => {
         // Request desktop notification permission
         await requestNotificationPermission();
 
-        // Connect to WebSocket server
-        await connectWebSocket();
+        // Connect to SSE endpoint
+        connectSSE();
 
         // Set up SillyTavern event listeners
         setupEventListeners();
