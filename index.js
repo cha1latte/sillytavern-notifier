@@ -1,4 +1,4 @@
-// Message Ding - Cross-client notification extension for SillyTavern
+// SillyTavern Notifier - Cross-client notification extension
 // Notifies other connected clients when bot messages are received
 
 import { getContext } from "../../../extensions.js";
@@ -76,7 +76,7 @@ function showDesktopNotification(title, body) {
         const notification = new Notification(title, {
             body: body,
             icon: '/img/ai4.png',
-            tag: 'message-ding',
+            tag: 'sillytavern-notifier',
         });
 
         setTimeout(() => notification.close(), 5000);
@@ -170,7 +170,7 @@ function connectSSE() {
                 const data = JSON.parse(event.data);
                 clientId = data.clientId;
                 console.log(`[${extensionName}] Assigned client ID: ${clientId}`);
-                updateStatusDisplay('Connected', 'success');
+                updateStatusDisplay('Connected!', 'success');
             } catch (error) {
                 console.error(`[${extensionName}] Error parsing welcome:`, error);
             }
@@ -215,7 +215,7 @@ function connectSSE() {
  * @param {string} type - Status type: 'success', 'warning', 'error'
  */
 function updateStatusDisplay(message, type) {
-    const statusEl = document.getElementById('message-ding-status');
+    const statusEl = document.getElementById('sillytavern-notifier-status');
     if (statusEl) {
         const icons = {
             success: '<i class="fa-solid fa-circle-check" style="color: #4caf50;"></i>',
