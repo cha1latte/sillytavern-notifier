@@ -8,7 +8,7 @@ Notifies you when there's a new bot reply on another client. Perfect for shared 
 - Desktop notifications (browser push notifications)
 - Audio notification sound
 - Automatic reconnection on connection loss
-- Low server overhead (WebSocket-based)
+- Low server overhead (SSE-based, no extra ports needed)
 
 ## Installation
 
@@ -20,19 +20,33 @@ Copy the `server-plugin` folder to your SillyTavern plugins directory:
 
 ```bash
 cp -r server-plugin /path/to/SillyTavern/plugins/message-ding-relay
-cd /path/to/SillyTavern/plugins/message-ding-relay
-npm install
 ```
 
-Then restart SillyTavern.
+Make sure server plugins are enabled in your `config.yaml`:
+
+```yaml
+enableServerPlugins: true
+```
+
+Then restart SillyTavern. You should see in the logs:
+```
+[message-ding-relay] Initializing plugin...
+[message-ding-relay] Plugin initialized successfully
+```
 
 ### 2. UI Extension (required)
 
-Copy the UI extension files to your SillyTavern third-party extensions:
+The UI extension can be installed via git clone into your third-party extensions folder:
 
 ```bash
-mkdir -p /path/to/SillyTavern/public/scripts/extensions/third-party/st-message-ding
-cp index.js manifest.json example.html /path/to/SillyTavern/public/scripts/extensions/third-party/st-message-ding/
+cd /path/to/SillyTavern/public/scripts/extensions/third-party
+git clone https://github.com/cha1latte/sillytavern-notifier
+```
+
+Or copy the files manually:
+```bash
+mkdir -p /path/to/SillyTavern/public/scripts/extensions/third-party/sillytavern-notifier
+cp index.js manifest.json example.html /path/to/SillyTavern/public/scripts/extensions/third-party/sillytavern-notifier/
 ```
 
 Then refresh your browser.
@@ -43,13 +57,13 @@ Then refresh your browser.
 ┌─────────────────────────────────────────────────────────────────┐
 │                     SillyTavern Server                          │
 │  ┌───────────────────────────────────────────────────────────┐ │
-│  │  Server Plugin (WebSocket relay on port 5050)             │ │
+│  │  Server Plugin (SSE relay via /api/plugins/...)           │ │
 │  │  - Tracks connected clients                                │ │
 │  │  - Broadcasts events to OTHER clients only                 │ │
 │  └───────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
                               ▲
-                              │ WebSocket
+                              │ HTTPS (same port as SillyTavern)
                 ┌─────────────┴─────────────┐
                 │                           │
      ┌──────────▼──────────┐     ┌──────────▼──────────┐
@@ -60,17 +74,9 @@ Then refresh your browser.
 
 1. Client A sends a message, bot responds
 2. Client A's extension detects `CHARACTER_MESSAGE_RENDERED` event
-3. Client A sends notification to server
-4. Server broadcasts to all OTHER clients (not A)
+3. Client A POSTs notification to server (`/api/plugins/message-ding-relay/notify`)
+4. Server broadcasts to all OTHER clients via SSE (`/api/plugins/message-ding-relay/events`)
 5. Client B receives notification, plays sound + shows desktop notification
-
-## Configuration
-
-The WebSocket server runs on port `5050` by default. To change this, set the environment variable:
-
-```bash
-MESSAGE_DING_PORT=5051 node server.js
-```
 
 ## Extending
 
@@ -83,9 +89,8 @@ User message notifications are already stubbed out in the code - just uncomment 
 
 ## Requirements
 
-- SillyTavern with server plugin support
-- Modern browser with Notification API support
-- Clients must be able to reach the WebSocket port (5050)
+- SillyTavern 1.12+ with server plugin support enabled
+- Modern browser with Notification API and EventSource support
 
 ## Author
 
